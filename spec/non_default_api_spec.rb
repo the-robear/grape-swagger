@@ -421,6 +421,74 @@ describe 'options: ' do
         api['path'].should start_with '/api/v1/'
       end
     end
+    
+
+  end
+
+  context 'when add_swagger_documentation has mount_version as true' do
+    before :all do
+      class VersionedMountedWithVersionApiOne < Grape::API
+        prefix 'api'
+        version 'v1'
+
+        desc 'This gets something.'
+        get '/something' do
+          { bla: 'something' }
+        end
+      end
+
+      class VersionedMountedWithVersionApiTwo < Grape::API
+        prefix 'api'
+        version 'v2'
+
+        desc 'This gets something too, but different.'
+        get '/something' do
+          { bla: 'something too' }
+        end
+      end
+
+      class SimpleApiWithMountedVersionOne < Grape::API
+        mount VersionedMountedWithVersionApiOne
+        add_swagger_documentation api_version: 'v1', mount_with_version: true
+      end
+
+      class SimpleApiWithMountedVersionTwo < Grape::API
+        mount VersionedMountedWithVersionApiTwo
+        add_swagger_documentation api_version: 'v2', mount_with_version: true
+      end
+
+      class MultipleApiVersionsHolder < Grape::API
+        mount SimpleApiWithMountedVersionOne
+        mount SimpleApiWithMountedVersionTwo
+      end
+    end
+
+    def app
+      MultipleApiVersionsHolder
+    end
+
+    it 'adds the version to the mount path' do
+      get '/swagger_doc/v1/something.json'
+      last_response.status.should eq 200
+    end
+
+    it 'can handle two version mounts' do
+      get '/swagger_doc/v1/something.json'
+      one = JSON.parse(last_response.body)
+
+      get '/swagger_doc/v2/something.json'
+      two = JSON.parse(last_response.body)
+
+      one['apis'].each do |api|
+        api['path'].should start_with '/api/v1/'
+        api['operations'].first['summary'].should eq 'This gets something.'
+      end
+
+      two['apis'].each do |api|
+        api['path'].should start_with '/api/v2/'
+        api['operations'].first['summary'].should eq 'This gets something too, but different.'
+      end
+    end
   end
 
   context 'protected API' do
