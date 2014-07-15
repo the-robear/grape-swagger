@@ -45,6 +45,7 @@ module Grape
             defaults = {
               target_class: nil,
               mount_path: '/swagger_doc',
+              mount_with_version: false,
               base_path: nil,
               api_version: '0.1',
               markdown: false,
@@ -60,11 +61,11 @@ module Grape
             options = defaults.merge(options)
 
             target_class     = options[:target_class]
-            @@mount_path     = options[:mount_path]
+            api_version      = options[:api_version]
+            @@mount_path     = options[:mount_path] + ((options[:mount_with_version] and api_version.present?) ? "/#{api_version}" : '')
             @@class_name     = options[:class_name] || options[:mount_path].gsub('/', '')
             @@markdown       = options[:markdown]
             @@hide_format    = options[:hide_format]
-            api_version      = options[:api_version]
             base_path        = options[:base_path]
             authorizations   = options[:authorizations]
             root_base_path   = options[:root_base_path]
